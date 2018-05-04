@@ -24,7 +24,7 @@ string cleanHtml = result.CleanHtml;
 IEnumerable<string> errorMessages = result.ErrorMessages;
 ```
 
-Referances
+References
 ----------
 
 * [OWASP AntiSamy Project - https://www.owasp.org/index.php/Category:OWASP_AntiSamy_Project](https://www.owasp.org/index.php/Category:OWASP_AntiSamy_Project)
