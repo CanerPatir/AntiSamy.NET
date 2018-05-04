@@ -1,4 +1,4 @@
-#tool "nuget:?package=xunit.runner.console&version=2.3.0-beta4-build3742"
+﻿#tool "nuget:?package=xunit.runner.console&version=2.3.0-beta4-build3742"
 
 #addin "nuget:?package=NuGet.Core"
 #addin "nuget:?package=Cake.ExtendedNuGet"
@@ -25,7 +25,7 @@ var testProjects = new List<Tuple<string, string[]>>
                       
 
 var nupkgPath = "nupkg";
-var nupkgRegex = $"**/{projectName}*.nupkg";
+var nupkgRegex = $"**/AntiSamy*.nupkg";
 var nugetPath = toolpath + "/nuget.exe";
 var nugetQueryUrl = "https://www.nuget.org/api/v2/";
 var nugetPushUrl = "https://www.nuget.org/api/v2/package";
