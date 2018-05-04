@@ -7,7 +7,7 @@
 // ARGUMENTS
 //////////////////////////////////////////////////////////////////////
 
-var projectName = "Stove";
+var projectName = "AntiSamy.NET";
 var solution = "./" + projectName + ".sln";
 
 var target = Argument("target", "Default");
