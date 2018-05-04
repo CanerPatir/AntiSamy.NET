@@ -1,4 +1,4 @@
-AntiSamy .NET
+AntiSamy .NET [![Build status](https://ci.appveyor.com/api/projects/status/fqd8927i932hbr9j?svg=true)](https://ci.appveyor.com/project/CanerPatir/antisamy-net)
 ========
 
 A .net standard library for performing configurable cleansing of HTML coming from untrusted sources.
