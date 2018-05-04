@@ -3,7 +3,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2043
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AntiSamy", "AntiSamy\AntiSamy.csproj", "{5F8A16B1-BA0E-44C5-89AE-E840E62D5425}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{665178DD-05A1-4CBF-AB33-868D6B845246}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{37861D31-8721-4536-94A0-B2977759643D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiSamy", "src\AntiSamy\AntiSamy.csproj", "{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiSamy.Tests", "test\AntiSamy.Tests\AntiSamy.Tests.csproj", "{0E6153A6-2B00-4290-AB1B-39D6D105B529}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{6AE9E6A9-4CC1-40C7-A858-5A2E6635E207}"
+	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
+		build.cake = build.cake
+		build.ps1 = build.ps1
+		common.props = common.props
+		icon.png = icon.png
+		LICENCE = LICENCE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,13 +28,21 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5F8A16B1-BA0E-44C5-89AE-E840E62D5425}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5F8A16B1-BA0E-44C5-89AE-E840E62D5425}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5F8A16B1-BA0E-44C5-89AE-E840E62D5425}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5F8A16B1-BA0E-44C5-89AE-E840E62D5425}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E6153A6-2B00-4290-AB1B-39D6D105B529}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E6153A6-2B00-4290-AB1B-39D6D105B529}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E6153A6-2B00-4290-AB1B-39D6D105B529}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E6153A6-2B00-4290-AB1B-39D6D105B529}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{08092E21-FA74-4D3A-9FD8-D95A5C4C7A1A} = {665178DD-05A1-4CBF-AB33-868D6B845246}
+		{0E6153A6-2B00-4290-AB1B-39D6D105B529} = {37861D31-8721-4536-94A0-B2977759643D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CED73542-BCAF-478E-AF4A-E6B36866D0AD}
