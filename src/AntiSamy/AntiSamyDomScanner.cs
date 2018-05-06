@@ -147,104 +147,19 @@ namespace AntiSamy
             {
                 if ("style".Equals(tagName.ToLower()) && _policy.GetTag("style") != null)
                 {
-                    ScanCss(node, parentNode, maxinputsize);
+                    ScanCss(node, parentNode, maxinputsize, false);
                 }
 
                 for (var currentAttributeIndex = 0; currentAttributeIndex < node.Attributes.Count; currentAttributeIndex++)
                 {
-                    HtmlAttribute attribute = node.Attributes[currentAttributeIndex];
+                    HtmlAttribute htmlAttribute = node.Attributes[currentAttributeIndex];
 
-                    string name = attribute.Name;
-                    string value = attribute.Value;
+                    string name = htmlAttribute.Name;
+                    string value = htmlAttribute.Value;
 
-                    DocumentAttribute attr = tag.GetAttributeByName(name) ?? _policy.GetGlobalAttribute(name);
 
-                    var isAttributeValid = false;
-
-                    if ("style".Equals(name.ToLower()) && attr != null)
-                    {
-                        ScanCss(node, parentNode, maxinputsize);
-                    }
-                    if (attr != null)
-                    {
-                        //try to find out how robust this is - do I need to do this in a loop?
-                        value = HtmlEntity.DeEntitize(value);
-
-                        foreach (string allowedValue in attr.AllowedValues)
-                        {
-                            if (isAttributeValid)
-                            {
-                                break;
-                            }
-
-                            if (allowedValue != null && allowedValue.ToLower().Equals(value.ToLower()))
-                            {
-                                isAttributeValid = true;
-                            }
-                        }
-
-                        foreach (string ptn in attr.AllowedRegExps)
-                        {
-                            if (isAttributeValid)
-                            {
-                                break;
-                            }
-                            string pattern = "^" + ptn + "$";
-                            Match m = Regex.Match(value, pattern);
-                            if (m.Success)
-                            {
-                                isAttributeValid = true;
-                            }
-                        }
-
-                        if (!isAttributeValid)
-                        {
-                            string onInvalidAction = attr.OnInvalid;
-                            var errBuff = new StringBuilder();
-
-                            errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag contained an attribute that we couldn't process. ");
-                            errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute had a value of <u>" + HtmlEntityEncoder.HtmlEntityEncode(value) + "</u>. ");
-                            errBuff.Append("This value could not be accepted for security reasons. We have chosen to ");
-
-                            //Console.WriteLine(policy);
-
-                            if (Consts.OnInvalidActions.REMOVE_TAG.Equals(onInvalidAction))
-                            {
-                                parentNode.RemoveChild(node);
-                                errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and its contents in order to process this input. ");
-                            }
-                            else if (Consts.OnInvalidActions.FILTER_TAG.Equals(onInvalidAction))
-                            {
-                                for (var i = 0; i < node.ChildNodes.Count; i++)
-                                {
-                                    tmp = node.ChildNodes[i];
-                                    RecursiveValidateTag(tmp);
-                                    if (tmp.ParentNode == null)
-                                    {
-                                        i--;
-                                    }
-                                }
-
-                                PromoteChildren(node);
-
-                                errBuff.Append("filter the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and leave its contents in place so that we could process this input.");
-                            }
-                            else if (Consts.OnInvalidActions.REMOVE_ATTRIBUTE.Equals(onInvalidAction))
-                            {
-                                node.Attributes.Remove(attr.Name);
-                                currentAttributeIndex--;
-                                errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute from the tag and leave everything else in place so that we could process this input.");
-                            }
-
-                            _errorMessages.Add(errBuff.ToString());
-
-                            if ("removeTag".Equals(onInvalidAction) || "filterTag".Equals(onInvalidAction))
-                            {
-                                return; // can't process any more if we remove/filter the tag	
-                            }
-                        }
-                    }
-                    else
+                    DocumentAttribute allowwdAttr = tag.GetAttributeByName(name) ?? _policy.GetGlobalAttribute(name);
+                    if (allowwdAttr == null)
                     {
                         var errBuff = new StringBuilder();
 
@@ -255,6 +170,94 @@ namespace AntiSamy
                         _errorMessages.Add(errBuff.ToString());
                         node.Attributes.Remove(name);
                         currentAttributeIndex--;
+                    }
+                    else
+                    {
+
+                        if ("style".Equals(name.ToLower()) && allowwdAttr != null)
+                        {
+                            ScanCss(node, parentNode, maxinputsize, true);
+                        }
+                        else
+                        {
+                            var isAttributeValid = false;
+                            //try to find out how robust this is - do I need to do this in a loop?
+                            value = HtmlEntity.DeEntitize(value);
+
+                            foreach (string allowedValue in allowwdAttr.AllowedValues)
+                            {
+                                if (isAttributeValid)
+                                {
+                                    break;
+                                }
+
+                                if (allowedValue != null && allowedValue.ToLower().Equals(value.ToLower()))
+                                {
+                                    isAttributeValid = true;
+                                }
+                            }
+
+                            foreach (string ptn in allowwdAttr.AllowedRegExps)
+                            {
+                                if (isAttributeValid)
+                                {
+                                    break;
+                                }
+                                string pattern = "^" + ptn + "$";
+                                Match m = Regex.Match(value, pattern);
+                                if (m.Success)
+                                {
+                                    isAttributeValid = true;
+                                }
+                            }
+
+                            if (!isAttributeValid)
+                            {
+                                string onInvalidAction = allowwdAttr.OnInvalid;
+                                var errBuff = new StringBuilder();
+
+                                errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag contained an attribute that we couldn't process. ");
+                                errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute had a value of <u>" + HtmlEntityEncoder.HtmlEntityEncode(value) + "</u>. ");
+                                errBuff.Append("This value could not be accepted for security reasons. We have chosen to ");
+
+                                //Console.WriteLine(policy);
+
+                                if (Consts.OnInvalidActions.REMOVE_TAG.Equals(onInvalidAction))
+                                {
+                                    parentNode.RemoveChild(node);
+                                    errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and its contents in order to process this input. ");
+                                }
+                                else if (Consts.OnInvalidActions.FILTER_TAG.Equals(onInvalidAction))
+                                {
+                                    for (var i = 0; i < node.ChildNodes.Count; i++)
+                                    {
+                                        tmp = node.ChildNodes[i];
+                                        RecursiveValidateTag(tmp);
+                                        if (tmp.ParentNode == null)
+                                        {
+                                            i--;
+                                        }
+                                    }
+
+                                    PromoteChildren(node);
+
+                                    errBuff.Append("filter the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and leave its contents in place so that we could process this input.");
+                                }
+                                else
+                                {
+                                    node.Attributes.Remove(allowwdAttr.Name);
+                                    currentAttributeIndex--;
+                                    errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute from the tag and leave everything else in place so that we could process this input.");
+                                }
+
+                                _errorMessages.Add(errBuff.ToString());
+
+                                if ("removeTag".Equals(onInvalidAction) || "filterTag".Equals(onInvalidAction))
+                                {
+                                    return; // can't process any more if we remove/filter the tag	
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -268,7 +271,7 @@ namespace AntiSamy
                     }
                 }
             }
-            else if ("truncate".Equals(tag.Action) || Consts.TagActions.REMOVE.Equals(tag.Action))
+            else if ("truncate".Equals(tag.Action))// || Consts.TagActions.REMOVE.Equals(tag.Action))
             {
                 Console.WriteLine("truncate");
                 HtmlAttributeCollection nnmap = node.Attributes;
@@ -311,23 +314,30 @@ namespace AntiSamy
             }
         }
 
-        private void ScanCss(HtmlNode node, HtmlNode parentNode, int maxinputsize)
+        private void ScanCss(HtmlNode node, HtmlNode parentNode, int maxinputsize, bool fromStyleAttribute)
         {
             var styleScanner = new CssScanner(_policy);
             try
             {
-                AntiySamyResult cssResult;
-                if (node.Attributes.Contains("style"))
+                AntiySamyResult cssResult = null;
+                //if (node.Attributes.Contains("style"))
+                if (fromStyleAttribute)
                 {
-                    cssResult = styleScanner.ScanStyleSheet(node.Attributes["style"].Value, maxinputsize);
-                    node.Attributes["style"].Value = cssResult.CleanHtml;
+                    cssResult = styleScanner.ScanStyleSheet(node.Attributes["style"].Value, maxinputsize, fromStyleAttribute);
+                    if (string.IsNullOrWhiteSpace(cssResult.CleanHtml))
+                    {
+                        node.Attributes["style"].Remove();
+                    }
+                    else
+                        node.Attributes["style"].Value = cssResult.CleanHtml;
                 }
-                else
+                else if (node.FirstChild != null)
                 {
-                    cssResult = styleScanner.ScanStyleSheet(node.FirstChild.InnerHtml, maxinputsize);
+                    cssResult = styleScanner.ScanStyleSheet(node.FirstChild.InnerHtml, maxinputsize, fromStyleAttribute);
                     node.FirstChild.InnerHtml = cssResult.CleanHtml;
                 }
-                _errorMessages.AddRange(cssResult.ErrorMessages);
+                if (cssResult != null)
+                    _errorMessages.AddRange(cssResult.ErrorMessages);
             }
             catch (ParseException e)
             {

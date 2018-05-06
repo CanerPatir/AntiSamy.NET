@@ -15,12 +15,14 @@ namespace AntiSamy
 {
     internal class CssScanner
     {
+        private const string dummySelectorBegin = ".dummySelector {";
+        private const string dummySelectorEnd = " }";
         private readonly Policy _policy;
         private List<string> _errors = new List<string>();
 
         public CssScanner(Policy policy) => _policy = policy ?? throw new ArgumentNullException(nameof(policy));
 
-        public AntiySamyResult ScanStyleSheet(string css, int maxinputsize)
+        public AntiySamyResult ScanStyleSheet(string css, int maxinputsize, bool fromStyleAttribute)
         {
             DateTime start = DateTime.UtcNow;
             _errors = new List<string>();
@@ -37,14 +39,15 @@ namespace AntiSamy
                         IsIncludingUnknownRules = true,
                         IsToleratingInvalidConstraints = true,
                         IsToleratingInvalidValues = true
-                    }).ParseStylesheet(css);
+                    }).ParseStylesheet(fromStyleAttribute ? dummySelectorBegin + css + dummySelectorEnd : css);
                 }
                 catch (Exception ex)
                 {
                     throw new ParseException(ex.Message, ex);
                 }
 
-                cleanStyleSheet = ScanStyleSheet(styleSheet);
+                var result = ScanStyleSheet(styleSheet);
+                cleanStyleSheet = fromStyleAttribute ? CleanDummyWrapper(result) : result;
             }
             catch (ParseException)
             {
@@ -56,6 +59,20 @@ namespace AntiSamy
             }
 
             return new AntiySamyResult(start, cleanStyleSheet, _errors);
+        }
+
+        private string CleanDummyWrapper(string result)
+        {
+            if (result.StartsWith(dummySelectorBegin))
+            {
+                result = result.Replace(dummySelectorBegin, string.Empty);
+
+                if (result.EndsWith("}"))
+                {
+                    result = result.Remove(result.Length - 1);
+                }
+            }
+            return string.IsNullOrWhiteSpace(result) ? string.Empty : result;
         }
 
         private string ScanStyleSheet(ICssStyleSheet styleSheet)

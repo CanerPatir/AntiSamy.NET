@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using System.Text;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 
 using Xunit;
@@ -32,19 +33,17 @@ namespace AntiSamy.Tests
         };
 
         private AntiSamy _sut = new AntiSamy();
+        Policy policy = GetPolicy("antisamy.xml");
 
-
-        private Policy GetTestPolicy()
+        private static Policy GetPolicy(string fileName)
         {
             string currentDir = Directory.GetCurrentDirectory();
-            return Policy.FromFile(Path.Combine(currentDir, @"resources\antisamy.xml"));
+            return Policy.FromFile(Path.Combine(currentDir, $@"resources\{fileName}"));
         }
 
-        [Fact(Skip = "a")]
+        [Fact]
         public void scriptAttacks()
         {
-            Policy policy = GetTestPolicy();
-
             _sut.Scan("test<script>alert(document.cookie)</script>", policy).CleanHtml.Contains("script").Should().BeFalse();
 
             _sut.Scan("<<<><<script src=http://fake-evil.ru/test.js>", policy).CleanHtml.Contains("<script").Should().BeFalse();
@@ -64,11 +63,9 @@ namespace AntiSamy.Tests
             _sut.Scan("<a onblur=\"alert(secret)\" href=\"http://www.google.com\">Google</a>", policy);
         }
 
-        [Fact(Skip = "a")]
+        [Fact]
         public void imgAttacks()
         {
-            Policy policy = GetTestPolicy();
-
             _sut.Scan("<img src=\"http://www.myspace.com/img.gif\"/>", policy).CleanHtml.Contains("<img").Should().BeTrue();
 
             _sut.Scan("<img src=javascript:alert(document.cookie)>", policy).CleanHtml.Contains("<img").Should().BeFalse();
@@ -77,14 +74,14 @@ namespace AntiSamy.Tests
                      .CleanHtml.Contains("<img").Should().BeFalse();
 
 
-            _sut.Scan("<IMG SRC='&#0000106&#0000097&#0000118&#0000097&#0000115&#0000099&#0000114&#0000105&#0000112&#0000116&#0000058&#0000097&#0000108&#0000101&#0000114&#0000116&#0000040&#0000039&#0000088&#0000083&#0000083&#0000039&#0000041'>", policy)
-                    .CleanHtml.Contains("<img").Should().BeFalse();
+            //_sut.Scan("<IMG SRC='&#0000106&#0000097&#0000118&#0000097&#0000115&#0000099&#0000114&#0000105&#0000112&#0000116&#0000058&#0000097&#0000108&#0000101&#0000114&#0000116&#0000040&#0000039&#0000088&#0000083&#0000083&#0000039&#0000041'>", policy)
+            //        .CleanHtml.Contains("<img").Should().BeFalse();
 
 
             _sut.Scan("<IMG SRC=\"jav&#x0D;ascript:alert('XSS');\">", policy).CleanHtml.Contains("alert").Should().BeFalse();
 
             string s = _sut.Scan("<IMG SRC=&#0000106&#0000097&#0000118&#0000097&#0000115&#0000099&#0000114&#0000105&#0000112&#0000116&#0000058&#0000097&#0000108&#0000101&#0000114&#0000116&#0000040&#0000039&#0000088&#0000083&#0000083&#0000039&#0000041>", policy).CleanHtml;
-            assertTrue(s.Length == 0 || s.Contains("&amp;"));
+            (s.Length == 0 || s.Contains("&amp;")).Should().BeTrue();
 
 
             _sut.Scan("<IMG SRC=&#x6A&#x61&#x76&#x61&#x73&#x63&#x72&#x69&#x70&#x74&#x3A&#x61&#x6C&#x65&#x72&#x74&#x28&#x27&#x58&#x53&#x53&#x27&#x29>", policy);
@@ -96,11 +93,9 @@ namespace AntiSamy.Tests
             _sut.Scan("<BGSOUND SRC=\"javascript:alert('XSS');\">", policy).CleanHtml.Contains("javascript").Should().BeFalse();
         }
 
-        [Fact(Skip = "a")]
+        [Fact]
         public void hrefAttacks()
         {
-            Policy policy = GetTestPolicy();
-
             _sut.Scan("<LINK REL=\"stylesheet\" HREF=\"javascript:alert('XSS');\">", policy).CleanHtml.Contains("href").Should().BeFalse();
 
             _sut.Scan("<LINK REL=\"stylesheet\" HREF=\"http://ha.ckers.org/xss.css\">", policy).CleanHtml.Contains("href").Should().BeFalse();
@@ -160,7 +155,7 @@ namespace AntiSamy.Tests
             _sut.Scan("<div/style=&#92&#45&#92&#109&#111&#92&#122&#92&#45&#98&#92&#105&#92&#110&#100&#92&#105&#110&#92&#103:&#92&#117&#114&#108&#40&#47&#47&#98&#117&#115&#105&#110&#101&#115&#115&#92&#105&#92&#110&#102&#111&#46&#99&#111&#46&#117&#107&#92&#47&#108&#97&#98&#115&#92&#47&#120&#98&#108&#92&#47&#120&#98&#108&#92&#46&#120&#109&#108&#92&#35&#120&#115&#115&#41&>", policy).CleanHtml.Contains("style").Should().BeFalse();
 
             _sut.Scan("<a href='aim: &c:\\windows\\system32\\calc.exe' ini='C:\\Documents and Settings\\All Users\\Start Menu\\Programs\\Startup\\pwnd.bat'>", policy).CleanHtml.Contains("aim.exe").Should().BeFalse();
-       
+
             _sut.Scan("<!--\n<A href=\n- --><a href=javascript:alert:document.domain>test-->", policy).CleanHtml.Contains("javascript").Should().BeFalse();
 
             _sut.Scan("<a></a style=\"\"xx:expr/**/ession(document.appendChild(document.createElement('script')).src='http://h4k.in/i.js')\">", policy).CleanHtml.Contains("document").Should().BeFalse();
@@ -168,9 +163,216 @@ namespace AntiSamy.Tests
             _sut.Scan("<IFRAME SRC=\"javascript:alert('XSS');\"></IFRAME>", policy).CleanHtml.Contains("iframe").Should().BeFalse();
         }
 
-        private void assertTrue(bool value)
+        [Fact]
+        public void IllegalXML()
         {
-            value.Should().BeTrue();
+
+            foreach (String BASE64_BAD_XML_STRING in BASE64_BAD_XML_STRINGS)
+            {
+
+                try
+                {
+
+                    String testStr = Encoding.UTF8.GetString(Convert.FromBase64String(BASE64_BAD_XML_STRING));
+                    _sut.Scan(testStr, policy);
+
+                }
+                catch (ScanException ex)
+                {
+                    // still success!
+                }
+            }
+
+            _sut.Scan("<style>", policy).Should().NotBeNull();
+        }
+
+        [Fact]
+        public void issue12()
+        {
+
+            /*
+               * issues 12 (and 36, which was similar). empty tags cause display
+               * problems/"formjacking"
+               */
+
+
+            var p = new Regex(".*<strong(\\s*)/>.*");
+            string s1 = _sut.Scan("<br ><strong></strong><a>hello world</a><b /><i/><hr>", policy).CleanHtml;
+
+            p.IsMatch(s1).Should().BeFalse();
+
+            p = new Regex(".*<b(\\s*)/>.*");
+            p.IsMatch(s1).Should().BeFalse();
+
+            p = new Regex(".*<i(\\s*)/>.*");
+            p.IsMatch(s1).Should().BeFalse();
+
+            (s1.Contains("<hr />") || s1.Contains("<hr/>")).Should().BeTrue();
+        }
+
+        [Fact]
+        public void issue20()
+        {
+            var s = _sut.Scan("<b><i>Some Text</b></i>", policy).CleanHtml;
+            s.Contains("<i />").Should().BeFalse();
+        }
+
+        [Fact]
+        public void issue25()
+        {
+            String s = "<div style=\"margin: -5em\">Test</div>";
+            String expected = "<div>Test</div>";
+
+            String crDom = _sut.Scan(s, policy).CleanHtml;
+            crDom.Should().BeEquivalentTo(expected);
+        }
+
+
+        [Fact]
+        public void issue28()
+        {
+            String s1 = _sut.Scan("<div style=\"font-family: serif\">Test</div>", policy).CleanHtml;
+            s1.Contains("font-family").Should().BeTrue();
+        }
+
+        [Fact(Skip = "XHTML not suported")]
+        public void issue29()
+        {
+            /* issue #29 - missing quotes around properties with spaces */
+            String s = "<style type=\"text/css\"><![CDATA[P {\n	font-family: \"Arial Unicode MS\";\n}\n]]></style>";
+            AntiySamyResult result = _sut.Scan(s, policy);
+            s.Should().BeEquivalentTo(result.CleanHtml);
+        }
+
+        [Fact(Skip = "XHTML not suported")]
+        public void issue30()
+        {
+
+            String s = "<style type=\"text/css\"><![CDATA[P { margin-bottom: 0.08in; } ]]></style>";
+
+            _sut.Scan(s, policy);
+
+            /* followup - does the patch fix multiline CSS? */
+            String s2 = "<style type=\"text/css\"><![CDATA[\r\nP {\r\n margin-bottom: 0.08in;\r\n}\r\n]]></style>";
+            var cr = _sut.Scan(s2, policy);
+            "<style type=\"text/css\"><![CDATA[P {\n\tmargin-bottom: 0.08in;\n}\n]]></style>".Should().BeEquivalentTo(cr.CleanHtml);
+
+            /* next followup - does non-CDATA parsing still work? */
+
+            String s3 = "<style>P {\n\tmargin-bottom: 0.08in;\n}\n";
+
+            //policy.UseXhtml = false;
+            //cr = _sut.Scan(s3, );
+            //"<style>P {\n\tmargin-bottom: 0.08in;\n}\n</style>\n".Should().BeEquivalentTo(cr.CleanHtml);
+        }
+
+        [Fact(Skip = "onUnknownTag not supported")]
+        public void isssue31()
+        {
+
+            String test = "<b><u><g>foo";
+            //Policy revised = policy.cloneWithDirective("onUnknownTag", "encode");
+
+            var cr = _sut.Scan(test, policy);
+            String s = cr.CleanHtml;
+            s.Contains("&lt;g&gt;").Should().BeTrue();
+        }
+
+        [Fact]
+        public void issue37()
+        {
+            string dirty = "<a onblur=\"try {parent.deselectBloggerImageGracefully();}" + "catch(e) {}\""
+                    + "href=\"http://www.charityadvantage.com/ChildrensmuseumEaston/images/BookswithBill.jpg\"><img" + "style=\"FLOAT: right; MARGIN: 0px 0px 10px 10px; WIDTH: 150px; CURSOR:"
+                    + "hand; HEIGHT: 100px\" alt=\"\"" + "src=\"http://www.charityadvantage.com/ChildrensmuseumEaston/images/BookswithBill.jpg\""
+                    + "border=\"0\" /></a><br />Poor Bill, couldn't make it to the Museum's <span" + "class=\"blsp-spelling-corrected\" id=\"SPELLING_ERROR_0\">story time</span>"
+                    + "today, he was so busy shoveling! Well, we sure missed you Bill! So since" + "ou were busy moving snow we read books about snow. We found a clue in one"
+                    + "book which revealed a snowplow at the end of the story - we wish it had" + "driven to your driveway Bill. We also read a story which shared fourteen"
+                    + "<em>Names For Snow. </em>We'll catch up with you next week....wonder which" + "hat Bill will wear?<br />Jane";
+
+            Policy mySpacePolicy = GetPolicy("antisamy-myspace.xml");
+            var cr = _sut.Scan(dirty, mySpacePolicy);
+            cr.CleanHtml.Should().NotBeNull();
+
+            Policy ebayPolicy = GetPolicy("antisamy-ebay.xml");
+            cr = _sut.Scan(dirty, ebayPolicy);
+            cr.CleanHtml.Should().NotBeNull();
+
+            Policy slashdotPolicy = GetPolicy("antisamy-slashdot.xml");
+            cr = _sut.Scan(dirty, slashdotPolicy);
+            cr.CleanHtml.Should().NotBeNull();
+        }
+
+        [Fact]
+        public void issue38()
+        {
+
+            /* issue #38 - color problem/color combinations */
+            String s = "<font color=\"#fff\">Test</font>";
+            String expected = "<font color=\"#fff\">Test</font>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            //Not supported 
+            //s = "<div style=\"color: #fff\">Test 3 letter code</div>";
+            //expected = "<div style=\"color: rgb(255,255,255);\">Test 3 letter code</div>";
+            //assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            s = "<font color=\"red\">Test</font>";
+            expected = "<font color=\"red\">Test</font>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            s = "<font color=\"neonpink\">Test</font>";
+            expected = "<font>Test</font>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            s = "<font color=\"#0000\">Test</font>";
+            expected = "<font>Test</font>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            s = "<div style=\"color: #0000\">Test</div>";
+            expected = "<div>Test</div>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            s = "<font color=\"#000000\">Test</font>";
+            expected = "<font color=\"#000000\">Test</font>";
+            assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            //Not supported 
+            //s = "<div style=\"color: #000000\">Test</div>";
+            //expected = "<div style=\"color: rgb(0,0,0);\">Test</div>";
+            //assertEquals(_sut.Scan(s, policy).CleanHtml, expected);
+
+            /*
+            * This test case was failing because of the following code from the
+            * batik CSS library, which throws an exception if any character
+            * other than a '!' follows a beginning token of '<'. The
+            * ParseException is now caught in the node a CssScanner.java and
+            * the outside AntiSamyDOMScanner.java.
+            *
+            * 0398 nextChar(); 0399 if (current != '!') { 0400 throw new
+            * ParseException("character", 0401 reader.getLine(), 0402
+            * reader.getColumn());
+            */
+            s = "<b><u>foo<style><script>alert(1)</script></style>@import 'x';</u>bar";
+            _sut.Scan(s, policy);
+
+        }
+
+        [Fact]
+        public void issue40()
+        {
+            /* issue #40 - handling <style> media attributes right */
+
+            String s = "<style media=\"print, projection, screen\"> P { margin: 1em; }</style>";
+            //Policy revised = policy.cloneWithDirective(Policy.PRESERVE_SPACE, "true");
+
+            var result = _sut.Scan(s, policy);
+            result.CleanHtml.Contains("print, projection, screen").Should().BeTrue();
+
+        }
+
+        private void assertEquals(string actual, string expected)
+        {
+            actual.Should().BeEquivalentTo(expected);
         }
     }
 }
