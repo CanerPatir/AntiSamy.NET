@@ -16,8 +16,6 @@ namespace AntiSamy
 
         private readonly Policy _policy;
 
-        private int _num;
-
         public AntiSamyDomScanner(Policy policy) => _policy = policy;
 
         public AntiySamyResult Scan(string html)
@@ -27,18 +25,10 @@ namespace AntiSamy
                 throw new ArgumentNullException(nameof(html));
             }
 
-            //had problems with the &nbsp; getting double encoded, so this converts it to a literal space.  
-            //this may need to be changed.
             html = html.Replace("&nbsp;", char.Parse("\u00a0").ToString());
-
-            //We have to replace any invalid XML characters
-
             html = StripNonValidXmlCharacters(html);
-
-            //holds the maximum input size for the incoming fragment
             int maxInputSize = Policy.DefaultMaxInputSize;
 
-            //grab the size specified in the config file
             try
             {
                 maxInputSize = _policy.GetDirectiveAsInt("maxInputSize", int.MaxValue);
@@ -48,64 +38,53 @@ namespace AntiSamy
                 Console.WriteLine("Format Exception: " + fe);
             }
 
-            //ensure our input is less than the max
             if (maxInputSize < html.Length)
             {
                 throw new ScanException("File size [" + html.Length + "] is larger than maximum [" + maxInputSize + "]");
             }
 
-            //grab start time (to be put in the result set along with end time)
             DateTime start = DateTime.Now;
 
-            //fixes some weirdness in HTML agility
             if (!HtmlNode.ElementsFlags.ContainsKey("iframe"))
             {
                 HtmlNode.ElementsFlags.Add("iframe", HtmlElementFlag.Empty);
             }
             HtmlNode.ElementsFlags.Remove("form");
 
-            //Let's parse the incoming HTML
             var doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            doc.LoadHtml(html.Replace(Environment.NewLine, string.Empty).Replace("\t", string.Empty));
 
-            //add closing tags
             doc.OptionAutoCloseOnEnd = true;
-
-            //enforces XML rules, encodes big 5
             doc.OptionOutputAsXml = true;
 
-            //loop through every node now, and enforce the rules held in the policy object
-            for (var i = 0; i < doc.DocumentNode.ChildNodes.Count; i++)
-            {
-                //grab current node
-                HtmlNode tmp = doc.DocumentNode.ChildNodes[i];
-
-                //this node can hold other nodes, so recursively validate
-                RecursiveValidateTag(tmp);
-
-                if (tmp.ParentNode == null)
-                {
-                    i--;
-                }
-            }
+            EvaluateNodeCollection(doc.DocumentNode.ChildNodes);
 
             string finalCleanHtml = doc.DocumentNode.InnerHtml;
 
             return new AntiySamyResult(start, finalCleanHtml, _errorMessages);
         }
 
-        private void RecursiveValidateTag(HtmlNode node)
+        private void EvaluateNodeCollection(HtmlNodeCollection nodes)
+        {
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                HtmlNode node = nodes[i];
+                EvaluateNode(node);
+
+                if (node.ParentNode == null)
+                {
+                    i--;
+                }
+            }
+        }
+
+        private void EvaluateNode(HtmlNode node)
         {
             int maxinputsize = _policy.GetDirectiveAsInt("maxInputSize", int.MaxValue);
 
-            _num++;
-
             HtmlNode parentNode = node.ParentNode;
-            HtmlNode tmp = null;
             string tagName = node.Name;
 
-            //check this out
-            //might not be robust enough
             if (tagName.ToLower().Equals("#text")) // || tagName.ToLower().Equals("#comment"))
             {
                 return;
@@ -122,7 +101,7 @@ namespace AntiSamy
                 }
                 else
                 {
-                    errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName.ToLower()) + "</b> ");
+                    errBuff.Append("The \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName.ToLower()) + "\" ");
                 }
 
                 errBuff.Append("tag has been filtered for security reasons. The contents of the tag will ");
@@ -130,16 +109,8 @@ namespace AntiSamy
 
                 _errorMessages.Add(errBuff.ToString());
 
-                for (var i = 0; i < node.ChildNodes.Count; i++)
-                {
-                    tmp = node.ChildNodes[i];
-                    RecursiveValidateTag(tmp);
-
-                    if (tmp.ParentNode == null)
-                    {
-                        i--;
-                    }
-                }
+                EvaluateNodeCollection(node.ChildNodes);
+               
                 PromoteChildren(node);
             }
             else if (Consts.TagActions.VALIDATE.Equals(tag.Action))
@@ -162,8 +133,8 @@ namespace AntiSamy
                     {
                         var errBuff = new StringBuilder();
 
-                        errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(name));
-                        errBuff.Append("</b> attribute of the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag has been removed for security reasons. ");
+                        errBuff.Append("The \"" + HtmlEntityEncoder.HtmlEntityEncode(name));
+                        errBuff.Append("\" attribute of the \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag has been removed for security reasons. ");
                         errBuff.Append("This removal should not affect the display of the HTML submitted.");
 
                         _errorMessages.Add(errBuff.ToString());
@@ -215,8 +186,8 @@ namespace AntiSamy
                                 string onInvalidAction = allowwdAttr.OnInvalid;
                                 var errBuff = new StringBuilder();
 
-                                errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag contained an attribute that we couldn't process. ");
-                                errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute had a value of <u>" + HtmlEntityEncoder.HtmlEntityEncode(value) + "</u>. ");
+                                errBuff.Append("The \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag contained an attribute that we couldn't process. ");
+                                errBuff.Append("The \"" + HtmlEntityEncoder.HtmlEntityEncode(name) + "\" attribute had a value of <u>" + HtmlEntityEncoder.HtmlEntityEncode(value) + "</u>. ");
                                 errBuff.Append("This value could not be accepted for security reasons. We have chosen to ");
 
                                 //Console.WriteLine(policy);
@@ -224,29 +195,22 @@ namespace AntiSamy
                                 if (Consts.OnInvalidActions.REMOVE_TAG.Equals(onInvalidAction))
                                 {
                                     parentNode.RemoveChild(node);
-                                    errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and its contents in order to process this input. ");
+                                    errBuff.Append("remove the \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag and its contents in order to process this input. ");
                                 }
                                 else if (Consts.OnInvalidActions.FILTER_TAG.Equals(onInvalidAction))
                                 {
-                                    for (var i = 0; i < node.ChildNodes.Count; i++)
-                                    {
-                                        tmp = node.ChildNodes[i];
-                                        RecursiveValidateTag(tmp);
-                                        if (tmp.ParentNode == null)
-                                        {
-                                            i--;
-                                        }
-                                    }
+                                   
+                                    EvaluateNodeCollection(node.ChildNodes);
 
                                     PromoteChildren(node);
 
-                                    errBuff.Append("filter the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag and leave its contents in place so that we could process this input.");
+                                    errBuff.Append("filter the \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag and leave its contents in place so that we could process this input.");
                                 }
                                 else
                                 {
                                     node.Attributes.Remove(allowwdAttr.Name);
                                     currentAttributeIndex--;
-                                    errBuff.Append("remove the <b>" + HtmlEntityEncoder.HtmlEntityEncode(name) + "</b> attribute from the tag and leave everything else in place so that we could process this input.");
+                                    errBuff.Append("remove the \"" + HtmlEntityEncoder.HtmlEntityEncode(name) + "\" attribute from the tag and leave everything else in place so that we could process this input.");
                                 }
 
                                 _errorMessages.Add(errBuff.ToString());
@@ -260,15 +224,7 @@ namespace AntiSamy
                     }
                 }
 
-                for (var i = 0; i < node.ChildNodes.Count; i++)
-                {
-                    tmp = node.ChildNodes[i];
-                    RecursiveValidateTag(tmp);
-                    if (tmp.ParentNode == null)
-                    {
-                        i--;
-                    }
-                }
+                EvaluateNodeCollection(node.ChildNodes);
             }
             else if ("truncate".Equals(tag.Action))// || Consts.TagActions.REMOVE.Equals(tag.Action))
             {
@@ -279,8 +235,8 @@ namespace AntiSamy
                 {
                     var errBuff = new StringBuilder();
 
-                    errBuff.Append("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(nnmap[0].Name));
-                    errBuff.Append("</b> attribute of the <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag has been removed for security reasons. ");
+                    errBuff.Append("The \"" + HtmlEntityEncoder.HtmlEntityEncode(nnmap[0].Name));
+                    errBuff.Append("\" attribute of the \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag has been removed for security reasons. ");
                     errBuff.Append("This removal should not affect the display of the HTML submitted.");
                     node.Attributes.Remove(nnmap[0].Name);
                     _errorMessages.Add(errBuff.ToString());
@@ -308,7 +264,7 @@ namespace AntiSamy
             }
             else
             {
-                _errorMessages.Add("The <b>" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "</b> tag has been removed for security reasons.");
+                _errorMessages.Add("The \"" + HtmlEntityEncoder.HtmlEntityEncode(tagName) + "\" tag has been removed for security reasons.");
                 parentNode.RemoveChild(node);
             }
         }

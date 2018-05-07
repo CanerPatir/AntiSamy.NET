@@ -89,6 +89,8 @@ namespace AntiSamy
 
         public DocumentAttribute GetGlobalAttribute(string name) => GlobalTagAttributes.TryGetValue(name, out DocumentAttribute val) ? val : null;
 
+        public DocumentAttribute GetCommonAttribute(string name) => CommonAttributes.TryGetValue(name, out DocumentAttribute val) ? val : null;
+
         public DocumentTag GetTag(string tagName) => TagRules.TryGetValue(tagName, out DocumentTag value) ? value : null;
 
         public CssProperty GetCssProperty(string propertyName) => CssRules.TryGetValue(propertyName, out CssProperty value) ? value : null;
@@ -131,7 +133,7 @@ namespace AntiSamy
                 {
                     string name = node.Attributes[0].Value;
 
-                    DocumentAttribute toAdd = CommonAttributes[name];
+                    DocumentAttribute toAdd = GetCommonAttribute(name);
                     if (toAdd != null)
                     {
                         globalAttributes.Add(name, toAdd);
@@ -249,24 +251,24 @@ namespace AntiSamy
                     XmlNodeList attributeList = tagNode.SelectNodes("attribute");
                     foreach (XmlNode attributeNode in attributeList)
                     {
-                        if (!attributeNode.HasChildNodes)
+                        if (IsCommonAttributeRule(attributeNode))
                         {
-                            CommonAttributes.TryGetValue(attributeNode.Attributes["name"].Value, out DocumentAttribute attribute);
+                            DocumentAttribute commonAttribute = GetCommonAttribute(attributeNode.Attributes["name"].Value);
 
-                            if (attribute != null)
+                            if (commonAttribute != null)
                             {
                                 string onInvalid = attributeNode.Attributes["onInvalid"]?.Value;
                                 string description = attributeNode.Attributes["description"]?.Value;
                                 if (!string.IsNullOrEmpty(onInvalid))
                                 {
-                                    attribute.OnInvalid = onInvalid;
+                                    commonAttribute.OnInvalid = onInvalid;
                                 }
                                 if (!string.IsNullOrEmpty(description))
                                 {
-                                    attribute.Description = description;
+                                    commonAttribute.Description = description;
                                 }
 
-                                tag.AddAllowedAttribute((DocumentAttribute)attribute.Clone());
+                                tag.AddAllowedAttribute((DocumentAttribute)commonAttribute.Clone());
                             }
                         }
                         else
@@ -335,6 +337,11 @@ namespace AntiSamy
                 }
             }
             return tags;
+        }
+
+        private static bool IsCommonAttributeRule(XmlNode attributeNode)
+        {
+            return !attributeNode.HasChildNodes;
         }
 
         private Dictionary<string, CssProperty> ParseCssRules(XmlNode cssNodeList)

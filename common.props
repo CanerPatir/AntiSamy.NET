@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionPrefix>1.0.2</VersionPrefix>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageIconUrl>https://raw.githubusercontent.com/canerpatir/AntiSamy.NET/master/icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/canerpatir/AntiSamy.NET</PackageProjectUrl>

@@ -4,8 +4,9 @@ namespace AntiSamy.Tests
 {
     public abstract class TestBase
     {
-        private const string DefaultAntiSamyFile = "antisamy.xml";
         protected readonly Policy TestPolicy;
+
+        protected  virtual string DefaultAntiSamyFile => "antisamy.xml";
 
         protected TestBase()
         {
