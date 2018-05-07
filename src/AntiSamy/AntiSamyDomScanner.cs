@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -11,8 +12,6 @@ namespace AntiSamy
 {
     public sealed class AntiSamyDomScanner
     {
-        public const string DefaultEncodingAlgorithm = "UTF-8";
-
         private readonly List<string> _errorMessages = new List<string>();
 
         private readonly Policy _policy;
@@ -21,7 +20,7 @@ namespace AntiSamy
 
         public AntiSamyDomScanner(Policy policy) => _policy = policy;
 
-        public AntiySamyResult Scan(string html, string inputEncoding, string outputEncoding)
+        public AntiySamyResult Scan(string html)
         {
             if (html == null)
             {
@@ -174,7 +173,7 @@ namespace AntiSamy
                     else
                     {
 
-                        if ("style".Equals(name.ToLower()) && allowwdAttr != null)
+                        if ("style".Equals(name.ToLower()))
                         {
                             ScanCss(node, parentNode, maxinputsize, true);
                         }
@@ -336,7 +335,7 @@ namespace AntiSamy
                     cssResult = styleScanner.ScanStyleSheet(node.FirstChild.InnerHtml, maxinputsize, fromStyleAttribute);
                     node.FirstChild.InnerHtml = cssResult.CleanHtml;
                 }
-                if (cssResult != null)
+                if (cssResult != null && cssResult.ErrorMessages.Any())
                     _errorMessages.AddRange(cssResult.ErrorMessages);
             }
             catch (ParseException e)

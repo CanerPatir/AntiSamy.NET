@@ -58,7 +58,7 @@ namespace AntiSamy
                 throw new ScanException("An error occured while scanning css", exception);
             }
 
-            return new AntiySamyResult(start, cleanStyleSheet, _errors);
+            return new AntiySamyResult(start, !string.IsNullOrEmpty(cleanStyleSheet) ? cleanStyleSheet.Trim() : cleanStyleSheet, _errors);
         }
 
         private string CleanDummyWrapper(string result)
@@ -176,13 +176,13 @@ namespace AntiSamy
 
         private void ValidateValue(CssProperty allowedCssProperty, ICssProperty cssProperty, string value, List<Tuple<ICssProperty, string>> removeStyles)
         {
-            if (!allowedCssProperty.AllowedLiterals.Any(lit => lit.Equals(value, StringComparison.OrdinalIgnoreCase)))
+            if (allowedCssProperty.AllowedLiterals.Any() && !allowedCssProperty.AllowedLiterals.Any(lit => lit.Equals(value, StringComparison.OrdinalIgnoreCase)))
             {
                 removeStyles.Add(new Tuple<ICssProperty, string>(cssProperty, $"\"{value}\" is not allowed literal"));
                 return;
             }
 
-            if (!allowedCssProperty.AllowedRegExps.Any(regex => new Regex(regex).IsMatch(value)))
+            if (allowedCssProperty.AllowedRegExps.Any() && !allowedCssProperty.AllowedRegExps.Any(regex => new Regex(regex).IsMatch(value)))
             {
                 removeStyles.Add(new Tuple<ICssProperty, string>(cssProperty, $"\"{value}\" is not allowed literal by regex"));
                 return;
