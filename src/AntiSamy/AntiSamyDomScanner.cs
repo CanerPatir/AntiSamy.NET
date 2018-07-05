@@ -150,6 +150,11 @@ namespace AntiSamy
                         }
                         else
                         {
+                            if (!allowwdAttr.AllowedValues.Any() && !allowwdAttr.AllowedRegExps.Any())
+                            {
+                                continue;
+                            }
+
                             var isAttributeValid = false;
                             //try to find out how robust this is - do I need to do this in a loop?
                             value = HtmlEntity.DeEntitize(value);

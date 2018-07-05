@@ -128,5 +128,21 @@ namespace AntiSamy.Tests
 
         }
 
+        [Fact]
+        public void allow_any_src_in_img_tag()
+        {
+            var scanner = new AntiSamy();
+
+            /*
+             * remove non-allowed hrefs
+             */
+
+            var input = "Size Table: ;<p><img src=\"/Assets/ProductImages/chartlar/image.jpg\" width=\"456\" height=\"197\" alt=\"\" /></p> ; Lorem ipsum";
+
+            AntiySamyResult result = scanner.Scan(input, GetPolicy("antisamy-mysite.xml"));
+
+            result.CleanHtml.Should().Be(input);
+        }
+
     }
 }

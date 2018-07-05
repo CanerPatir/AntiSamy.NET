@@ -4,13 +4,13 @@
     <TargetFrameworks>netstandard2.0;net45;net46</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Caner Patır</Authors>
-    <Version>1.0.4</Version>
-    <FileVersion>1.0.4.0</FileVersion>
+    <Version>1.0.5</Version>
+    <FileVersion>1.0.5.0</FileVersion>
     <RepositoryUrl>https://github.com/canerpatir/AntiSamy.NET</RepositoryUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/canerpatir/AntiSamy.NET/master/icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/canerpatir/AntiSamy.NET</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/canerpatir/AntiSamy.NET/blob/master/LICENCE</PackageLicenseUrl>
-    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <AssemblyVersion>1.0.5.0</AssemblyVersion>
     <RepositoryType>git</RepositoryType>
     <Description>A .net standard library for performing configurable cleansing of HTML coming from untrusted sources.</Description>
     <Copyright>Caner Patır</Copyright>
